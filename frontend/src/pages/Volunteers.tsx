@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapPin, Phone, Mail, Calendar, Users } from 'lucide-react';
+import { socket } from '../socket';
 
 interface Volunteer {
   _id: string;
@@ -17,10 +18,22 @@ const Volunteers = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/volunteers')
-      .then(res => setVolunteers(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const fetchVolunteers = () => {
+      axios.get('http://localhost:5000/api/volunteers')
+        .then(res => setVolunteers(res.data))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    };
+
+    fetchVolunteers();
+
+    socket.on('volunteer_updated', (newVolunteer: Volunteer) => {
+      setVolunteers((prev) => [newVolunteer, ...prev]);
+    });
+
+    return () => {
+      socket.off('volunteer_updated');
+    };
   }, []);
 
   const avatarColors = [

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar, Clock, MapPin, Users, CheckCircle } from 'lucide-react';
+import { socket } from '../socket';
 
 interface Beach {
   name: string;
@@ -36,6 +37,27 @@ const Events = () => {
     };
 
     fetchEvents();
+
+    socket.on('event_updated', (updatedEvent: Event) => {
+      setEvents((prevEvents) => {
+        const index = prevEvents.findIndex((e) => e._id === updatedEvent._id);
+        if (index !== -1) {
+          const newEvents = [...prevEvents];
+          newEvents[index] = {
+            ...updatedEvent,
+            // Keep the beachId object if it was populated before and the update doesn't have it fully populated
+            beachId: updatedEvent.beachId || prevEvents[index].beachId
+          };
+          return newEvents;
+        } else {
+          return [updatedEvent, ...prevEvents];
+        }
+      });
+    });
+
+    return () => {
+      socket.off('event_updated');
+    };
   }, []);
 
   const handleJoin = async (eventId: string) => {

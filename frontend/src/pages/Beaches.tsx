@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapPin, CheckCircle, Clock } from 'lucide-react';
+import { socket } from '../socket';
 
 interface Beach {
   _id: string;
@@ -29,6 +30,23 @@ const Beaches = () => {
     };
 
     fetchBeaches();
+
+    socket.on('beach_updated', (updatedBeach: Beach) => {
+      setBeaches((prevBeaches) => {
+        const index = prevBeaches.findIndex((b) => b._id === updatedBeach._id);
+        if (index !== -1) {
+          const newBeaches = [...prevBeaches];
+          newBeaches[index] = updatedBeach;
+          return newBeaches;
+        } else {
+          return [updatedBeach, ...prevBeaches];
+        }
+      });
+    });
+
+    return () => {
+      socket.off('beach_updated');
+    };
   }, []);
 
   const getWasteLevelColor = (level: string) => {

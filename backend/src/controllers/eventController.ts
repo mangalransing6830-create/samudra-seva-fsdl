@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Event } from '../models/Event';
+import { getIO } from '../socket';
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
@@ -14,6 +15,7 @@ export const createEvent = async (req: Request, res: Response) => {
   try {
     const event = new Event(req.body);
     const createdEvent = await event.save();
+    getIO().emit('event_updated', createdEvent);
     res.status(201).json(createdEvent);
   } catch (error) {
     res.status(400).json({ message: 'Invalid data' });
@@ -23,10 +25,11 @@ export const createEvent = async (req: Request, res: Response) => {
 export const joinEvent = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const event = await Event.findByIdAndUpdate(id, { $inc: { volunteersCount: 1 } }, { new: true });
+    const event = await Event.findByIdAndUpdate(id, { $inc: { volunteersCount: 1 } }, { returnDocument: 'after' });
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
+    getIO().emit('event_updated', event);
     res.json(event);
   } catch (error) {
     res.status(400).json({ message: 'Invalid data' });
